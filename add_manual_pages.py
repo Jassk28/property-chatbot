@@ -22,6 +22,11 @@ for name in sorted(os.listdir(FOLDER)):
     if len(text) < 300:
         print("SKIP", name, "(too short - did you paste the page?)")
         continue
+    # Check the page heading matches the file name, e.g. "Villas for Sale in Jeddah"
+    expected = name[:-4].replace("-", " ").lower()          # "villas for sale in jeddah"
+    if expected.replace("properties", "propert") not in text[:3000].lower().replace("properties", "propert"):
+        print("WRONG", name, "- page heading doesn't say", repr(expected), "- please copy it again")
+        continue
     data.append({"source": "Wasalt", "url": "https://wasalt.sa/en/" + name[:-4], "text": text})
     print("OK  ", name, len(text), "chars")
     added += 1
