@@ -4,6 +4,7 @@
 
 import json
 import os
+import re
 
 FOLDER = "wasalt_pages"
 
@@ -22,12 +23,16 @@ for name in sorted(os.listdir(FOLDER)):
     if len(text) < 300:
         print("SKIP", name, "(too short - did you paste the page?)")
         continue
-    # Check the page heading matches the file name, e.g. "Villas for Sale in Jeddah"
-    expected = name[:-4].replace("-", " ").lower()          # "villas for sale in jeddah"
-    if expected.replace("properties", "propert") not in text[:3000].lower().replace("properties", "propert"):
-        print("WRONG", name, "- page heading doesn't say", repr(expected), "- please copy it again")
+    # Check the page matches the file name: every word of the name (e.g. villas, sale, jeddah)
+    # must appear near the top of the page
+    def simple(word):
+        return word.lower().rstrip("s")  # villas -> villa, properties -> propertie
+    top_words = {simple(w) for w in re.findall(r"\w+", text[:3000])}
+    missing = [w for w in name[:-4].split("-") if simple(w) not in top_words]
+    if missing:
+        print("WRONG", name, "- page doesn't mention", missing, "- please copy it again")
         continue
-    data.append({"source": "Wasalt", "url": "https://wasalt.sa/en/" + name[:-4], "text": text})
+    data.append({"source": "Wasalt", "url": "wasalt.sa (copied page: " + name[:-4] + ")", "text": text})
     print("OK  ", name, len(text), "chars")
     added += 1
 
