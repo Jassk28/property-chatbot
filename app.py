@@ -24,16 +24,27 @@ with open("data.json", encoding="utf-8") as f:
 print("Loaded", len(CHUNKS), "chunks")
 
 
+# Common words that appear everywhere and don't help the search
+STOP_WORDS = {"the", "a", "an", "in", "on", "of", "for", "and", "or", "to", "is", "are", "me",
+              "show", "what", "which", "with", "any", "there", "tell", "about", "do", "you",
+              "have", "i", "can", "list", "give", "please", "find", "all", "some", "price", "prices"}
+
+
 def words(text):
-    return set(re.findall(r"\w+", text.lower()))
+    found = set(re.findall(r"\w+", text.lower()))
+    # treat plural and singular the same (villas -> villa)
+    found |= {w[:-1] for w in found if w.endswith("s")}
+    return found - STOP_WORDS
 
 
 # ---- 2) Find the chunks that best match the question (simple keyword search) ----
-def find_relevant(question, top=6):
+def find_relevant(question, top=8):
     q = words(question)
     scored = []
     for c in CHUNKS:
-        score = len(q & words(c["text"] + " " + c["source"] + " " + c["url"]))
+        score = len(q & words(c["text"]))
+        # pages whose web address matches the question (e.g. villas-for-sale-in-jeddah) count extra
+        score += 3 * len(q & words(c["url"].replace("-", " ").replace("/", " ") + " " + c["source"]))
         scored.append((score, c))
     scored.sort(key=lambda x: x[0], reverse=True)
     return [c for score, c in scored[:top] if score > 0]
